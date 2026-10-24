@@ -44,17 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const webcam = document.getElementById('webcam');
     const btnCaptureCamera = document.getElementById('btnCaptureCamera');
 
-    // Modal Elements
-    const btnViewCSharp = document.getElementById('btnViewCSharp');
-    const csharpModal = document.getElementById('csharpModal');
-    const btnCloseModal = document.getElementById('btnCloseModal');
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = {
-        corr: document.getElementById('tabCorr'),
-        gray: document.getElementById('tabGray'),
-        load: document.getElementById('tabLoad')
-    };
-
     let processedA = null;
     let processedB = null;
     let mediaStream = null;
@@ -505,32 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.drawImage(webcam, 0, 0, canvasEyeB.width, canvasEyeB.height);
         processedB = processEye(canvasEyeB, canvasStripB, gaborBCanvases, coordsB);
         evaluateMatch();
-    });
-
-    // Modal Events
-    btnViewCSharp.addEventListener('click', () => {
-        csharpModal.style.display = 'flex';
-    });
-
-    btnCloseModal.addEventListener('click', () => {
-        csharpModal.style.display = 'none';
-    });
-
-    csharpModal.addEventListener('click', (e) => {
-        if (e.target === csharpModal) {
-            csharpModal.style.display = 'none';
-        }
-    });
-
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const target = btn.dataset.tab;
-            Object.keys(tabContents).forEach(key => {
-                tabContents[key].style.display = key === target ? 'block' : 'none';
-            });
-        });
     });
 
     // Initial Execution

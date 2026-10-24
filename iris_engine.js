@@ -1,12 +1,12 @@
 /**
  * IRIS-BIOMETRICS-OS | CORE ALGORITHM ENGINE (JavaScript)
  * Implementation of John Daugman's Iris Recognition Pipeline:
- * 1. Grayscale Conversion (from ConvertGray)
+ * 1. Grayscale Conversion (Luminance weighting)
  * 2. Integro-differential Pupil & Iris Boundary Localization
  * 3. Daugman Rubber Sheet Model (Polar to Cartesian Normalization)
  * 4. 2D Gabor Wavelet Feature Extraction (Filters 1 ~ 6)
  * 5. IrisCode Binary Phase Encoding
- * 6. Pearson Correlation Coefficient (from Correlation) & Hamming Distance
+ * 6. Pearson Correlation Coefficient & Hamming Distance
  */
 
 class IrisEngine {
@@ -18,7 +18,6 @@ class IrisEngine {
 
     /**
      * Convert RGBA ImageData to single-channel Grayscale array
-     * (Faithful JS port of ConvertGray)
      */
     rgbToGray(imageData) {
         const width = imageData.width;
@@ -210,13 +209,12 @@ class IrisEngine {
         return {
             filters,
             irisCode: irisCodeBits,
-            featureVector: featureVector.slice(0, 253) // matches n=253 in original Correlation.cs
+            featureVector: featureVector.slice(0, 253) // Feature vector length n=253
         };
     }
 
     /**
-     * Exact 1:1 JavaScript implementation of Correlation.cs
-     * Computes Pearson Correlation Coefficient between two feature arrays
+     * Computes Pearson Correlation Coefficient between two feature arrays (n=253)
      */
     pearsonCorrelation(X, Y) {
         const n = Math.min(253, X.length, Y.length);
