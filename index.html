@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRIS BIOMETRICS OS | 虹膜辨識與特徵比對系統 (Pure JavaScript)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Rajdhani:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Grid & Ambience -->
+    <div class="bg-grid"></div>
+    <div class="bg-radial"></div>
+
+    <!-- Top Navigation & Status -->
+    <header class="top-nav">
+        <div class="brand">
+            <div class="brand-icon">
+                <div class="iris-ring"></div>
+                <div class="iris-pupil"></div>
+            </div>
+            <div class="brand-text">
+                <h1>IRIS-BIOMETRICS-OS <span>v2.4</span></h1>
+                <p>DAUGMAN ALGORITHM &bull; 6-GABOR WAVELET &bull; CORRELATION ENGINE (JS)</p>
+            </div>
+        </div>
+
+        <div class="system-status">
+            <div class="status-badge live">
+                <span class="indicator-dot"></span>
+                <span>ENGINE ONLINE</span>
+            </div>
+            <button id="btnViewCSharp" class="btn-outline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                檢視原始 C# 轉換紀錄
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="main-container">
+        <!-- Dual Biometric Comparison Station -->
+        <section class="comparison-deck">
+            <!-- Subject A Card -->
+            <div class="eye-card" id="cardA">
+                <div class="card-header">
+                    <div class="card-tag">SUBJECT A (基準樣本)</div>
+                    <div class="sample-selectors">
+                        <select id="selectPresetA" class="custom-select">
+                            <option value="subject1_a">👤 樣本 1號 - 左眼 (基準)</option>
+                            <option value="subject1_b">👤 樣本 1號 - 左眼 (同人測試)</option>
+                            <option value="subject2">👤 樣本 2號 - 琥珀色虹膜</option>
+                            <option value="subject3">👤 樣本 3號 - 青藍色虹膜</option>
+                        </select>
+                        <label class="btn-icon" title="上傳眼部圖片">
+                            <input type="file" id="uploadA" accept="image/*" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Canvas Eye Display -->
+                <div class="canvas-wrapper">
+                    <canvas id="canvasEyeA" width="280" height="280"></canvas>
+                    <div class="reticle-overlay">
+                        <div class="crosshair-h"></div>
+                        <div class="crosshair-v"></div>
+                        <div class="scan-laser"></div>
+                    </div>
+                    <div class="coords-tag" id="coordsA">P: (140, 140) r=32 | I: r=78</div>
+                </div>
+
+                <!-- Normalized Daugman Strip -->
+                <div class="strip-section">
+                    <div class="strip-header">
+                        <span>DAUGMAN RUBBER SHEET 展開環形帶</span>
+                        <span class="mono-badge">256 x 48 px</span>
+                    </div>
+                    <canvas id="canvasStripA" class="strip-canvas" width="256" height="48"></canvas>
+                </div>
+
+                <!-- 6 Gabor Filter Heatmaps -->
+                <div class="gabor-bank">
+                    <div class="gabor-title">6-PASS GABOR FILTER BANK (picGaborFilter1 ~ 6)</div>
+                    <div class="gabor-grid">
+                        <div class="gabor-cell"><canvas id="gaborA_0" width="80" height="24"></canvas><span>F1 (0°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborA_1" width="80" height="24"></canvas><span>F2 (30°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborA_2" width="80" height="24"></canvas><span>F3 (60°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborA_3" width="80" height="24"></canvas><span>F4 (90°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborA_4" width="80" height="24"></canvas><span>F5 (120°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborA_5" width="80" height="24"></canvas><span>F6 (150°)</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Verification & Correlation Decision Core -->
+            <div class="decision-core">
+                <div class="core-header">
+                    <h2>BIOMETRIC VERIFICATION</h2>
+                    <p>特徵比對與相關係數決策中心</p>
+                </div>
+
+                <!-- Verdict Banner -->
+                <div class="verdict-card" id="verdictCard">
+                    <div class="verdict-icon" id="verdictIcon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                    </div>
+                    <div class="verdict-text">
+                        <div class="verdict-title" id="verdictTitle">CALCULATING...</div>
+                        <div class="verdict-sub" id="verdictSub">正在執行特徵矩陣卷積運算</div>
+                    </div>
+                </div>
+
+                <!-- Metrics Meter 1: Pearson Correlation -->
+                <div class="metric-meter-box">
+                    <div class="metric-info">
+                        <span class="metric-label">皮爾森相關係數 (Correlation.cs)</span>
+                        <span class="metric-value" id="valCorrelation">--</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="barCorrelation" style="width: 0%;"></div>
+                    </div>
+                    <div class="metric-hint">
+                        <span>n = 253 浮點數特徵特異性向量</span>
+                        <span class="threshold-label">門檻值 ≥ 0.75</span>
+                    </div>
+                </div>
+
+                <!-- Metrics Meter 2: Hamming Distance -->
+                <div class="metric-meter-box">
+                    <div class="metric-info">
+                        <span class="metric-label">漢明距離 (Daugman IrisCode HD)</span>
+                        <span class="metric-value" id="valHamming">--</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill warning" id="barHamming" style="width: 0%;"></div>
+                    </div>
+                    <div class="metric-hint">
+                        <span>越低越相似 (理論偽陽性率 1/40億)</span>
+                        <span class="threshold-label">門檻值 ≤ 0.32</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-dock">
+                    <button id="btnRunMatch" class="btn-primary glow">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        執行即時 1:1 比對
+                    </button>
+                    <button id="btnCamera" class="btn-secondary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        啟動攝影機辨識
+                    </button>
+                </div>
+
+                <!-- Live Camera Modal Video -->
+                <div class="camera-preview-box" id="cameraBox" style="display: none;">
+                    <video id="webcam" autoplay playsinline width="260" height="200"></video>
+                    <button id="btnCaptureCamera" class="btn-small">拍照匯入 Subject B</button>
+                </div>
+
+                <!-- Feature Matrix Code Visualizer -->
+                <div class="matrix-preview">
+                    <div class="matrix-title">IRISCODE 2D 象限相位編碼矩陣 (IrisCode Matrix)</div>
+                    <canvas id="canvasIrisCodeMatrix" width="300" height="40"></canvas>
+                </div>
+            </div>
+
+            <!-- Subject B Card -->
+            <div class="eye-card" id="cardB">
+                <div class="card-header">
+                    <div class="card-tag">SUBJECT B (待驗樣本)</div>
+                    <div class="sample-selectors">
+                        <select id="selectPresetB" class="custom-select">
+                            <option value="subject1_b">👤 樣本 1號 - 左眼 (同人測試)</option>
+                            <option value="subject1_a">👤 樣本 1號 - 左眼 (基準)</option>
+                            <option value="subject2">👤 樣本 2號 - 琥珀色虹膜</option>
+                            <option value="subject3">👤 樣本 3號 - 青藍色虹膜</option>
+                        </select>
+                        <label class="btn-icon" title="上傳眼部圖片">
+                            <input type="file" id="uploadB" accept="image/*" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Canvas Eye Display -->
+                <div class="canvas-wrapper">
+                    <canvas id="canvasEyeB" width="280" height="280"></canvas>
+                    <div class="reticle-overlay">
+                        <div class="crosshair-h"></div>
+                        <div class="crosshair-v"></div>
+                        <div class="scan-laser"></div>
+                    </div>
+                    <div class="coords-tag" id="coordsB">P: (140, 140) r=32 | I: r=78</div>
+                </div>
+
+                <!-- Normalized Daugman Strip -->
+                <div class="strip-section">
+                    <div class="strip-header">
+                        <span>DAUGMAN RUBBER SHEET 展開環形帶</span>
+                        <span class="mono-badge">256 x 48 px</span>
+                    </div>
+                    <canvas id="canvasStripB" class="strip-canvas" width="256" height="48"></canvas>
+                </div>
+
+                <!-- 6 Gabor Filter Heatmaps -->
+                <div class="gabor-bank">
+                    <div class="gabor-title">6-PASS GABOR FILTER BANK (picGaborFilter1 ~ 6)</div>
+                    <div class="gabor-grid">
+                        <div class="gabor-cell"><canvas id="gaborB_0" width="80" height="24"></canvas><span>F1 (0°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborB_1" width="80" height="24"></canvas><span>F2 (30°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborB_2" width="80" height="24"></canvas><span>F3 (60°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborB_3" width="80" height="24"></canvas><span>F4 (90°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborB_4" width="80" height="24"></canvas><span>F5 (120°)</span></div>
+                        <div class="gabor-cell"><canvas id="gaborB_5" width="80" height="24"></canvas><span>F6 (150°)</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pipeline Architecture Overview Section -->
+        <section class="pipeline-section">
+            <div class="pipeline-header">
+                <h3>DAUGMAN 虹膜辨識演算法運作管線 (100% 純原生 JavaScript 實作)</h3>
+            </div>
+            <div class="pipeline-flow">
+                <div class="flow-step">
+                    <div class="step-num">01</div>
+                    <div class="step-content">
+                        <h4>灰階化預處理 (ConvertGray)</h4>
+                        <p>原 C# EmguCV <code>CvInvoke.CvtColor</code> 轉為純 JS 加權演算法 (<code>0.299R + 0.587G + 0.114B</code>)。</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">02</div>
+                    <div class="step-content">
+                        <h4>瞳孔與鞏膜定位 (Boundary)</h4>
+                        <p>數值微積分尋找徑向梯度跳躍點，偵測瞳孔內圈半徑與虹膜邊緣 (Limbus)。</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">03</div>
+                    <div class="step-content">
+                        <h4>橡皮板模型展開 (Rubber Sheet)</h4>
+                        <p>將圓環形虹膜極座標 $(r, \theta)$ 展開為固定尺度 $256 \times 48$ 矩形帶，消除瞳孔縮放變形。</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">04</div>
+                    <div class="step-content">
+                        <h4>6通道 Gabor 濾波 (Gabor Filters)</h4>
+                        <p>對應原 C# <code>picGaborFilter1~6</code>，透過 6 個不同頻率與角度之 2D 小波核擷取紋理特徵。</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">05</div>
+                    <div class="step-content">
+                        <h4>皮爾森相關係數 (Correlation.cs)</h4>
+                        <p>完全對齊原 C# <code>corr(float[] X, float[] Y)</code> 數學公式 ($n=253$)，進行特異性數值判定。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: View C# to JS Mapping -->
+    <div class="modal-overlay" id="csharpModal" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>C# 原碼與 JavaScript 核心對照表</h3>
+                <button class="btn-close" id="btnCloseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="code-tab-nav">
+                    <button class="tab-btn active" data-tab="corr">Correlation.cs &rarr; JS</button>
+                    <button class="tab-btn" data-tab="gray">ConvertGray &rarr; JS</button>
+                    <button class="tab-btn" data-tab="load">LoadEye.cs &rarr; JS</button>
+                </div>
+                <div class="tab-content" id="tabCorr">
+                    <p class="tab-desc">原 C# 計算皮爾森相關係數 (n=253)，JavaScript 版本精準實作相同的代數公式：</p>
+                    <div class="code-compare-grid">
+                        <div class="code-col">
+                            <h4>原 C# 程式碼 (Correlation)</h4>
+                            <pre><code>public float corr(float[] X, float[] Y)
+{
+    float sum_X = 0, sum_Y = 0, sum_XY = 0;
+    float squareSum_X = 0, squareSum_Y = 0;
+    for (int i = 0; i &lt; 253; i++)
+    {
+        sum_X = sum_X + X[i];
+        sum_Y = sum_Y + Y[i];
+        sum_XY = sum_XY + X[i] * Y[i];
+        squareSum_X = squareSum_X + X[i] * X[i];
+        squareSum_Y = squareSum_Y + Y[i] * Y[i];
+    }
+    float a = (float)Math.Sqrt((253 * squareSum_X - sum_X * sum_X) * 
+                              (253 * squareSum_Y - sum_Y * sum_Y));
+    float corr = (float)(253 * sum_XY - sum_X * sum_Y) / a;
+    return corr;
+}</code></pre>
+                        </div>
+                        <div class="code-col">
+                            <h4>新 JavaScript 核心 (iris_engine.js)</h4>
+                            <pre><code>pearsonCorrelation(X, Y) {
+    const n = Math.min(253, X.length, Y.length);
+    let sum_X = 0, sum_Y = 0, sum_XY = 0;
+    let squareSum_X = 0, squareSum_Y = 0;
+
+    for (let i = 0; i &lt; n; i++) {
+        const xi = X[i], yi = Y[i];
+        sum_X += xi;
+        sum_Y += yi;
+        sum_XY += xi * yi;
+        squareSum_X += xi * xi;
+        squareSum_Y += yi * yi;
+    }
+
+    let a = Math.sqrt((n * squareSum_X - sum_X * sum_X) * 
+                      (n * squareSum_Y - sum_Y * sum_Y));
+    if (a === 0 || isNaN(a)) a = 1;
+    return (n * sum_XY - sum_X * sum_Y) / a;
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" id="tabGray" style="display: none;">
+                    <p class="tab-desc">原 C# 依賴 EmguCV 套件轉換灰階，JavaScript 版改由 HTML5 Canvas 原生像素權重處理：</p>
+                    <div class="code-compare-grid">
+                        <div class="code-col">
+                            <h4>原 C# 程式碼 (ConvertGray)</h4>
+                            <pre><code>Image&lt;Bgr, Byte&gt; sourceImage = new Image&lt;Bgr, Byte&gt;(fileName);
+Image&lt;Gray, Byte&gt; grayImage = new Image&lt;Gray, Byte&gt;(sourceImage.Width, sourceImage.Height);
+CvInvoke.CvtColor(sourceImage, grayImage, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
+grayImage.Save(saveFolder + @"\" + file.Name);</code></pre>
+                        </div>
+                        <div class="code-col">
+                            <h4>新 JavaScript 核心 (iris_engine.js)</h4>
+                            <pre><code>rgbToGray(imageData) {
+    const { width, height, data } = imageData;
+    const gray = new Uint8ClampedArray(width * height);
+    for (let i = 0, j = 0; i &lt; data.length; i += 4, j++) {
+        // 標準亮度加權: 0.299R + 0.587G + 0.114B
+        gray[j] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    }
+    return { gray, width, height };
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" id="tabLoad" style="display: none;">
+                    <p class="tab-desc">原 C# 載入影像、平滑化、邊界抽取、極座標轉換並產生 6 組 Gabor 濾波器影像：</p>
+                    <div class="code-compare-grid">
+                        <div class="code-col">
+                            <h4>原 C# 程式碼 (LoadEye.cs)</h4>
+                            <pre><code>IrisImage.ProcessIris();
+picBoxIrisImage.Image = IrisImage.Image.ToBitmap();
+picBoxSmoothedIris.Image = IrisImage.SmoothedIris.ToBitmap();
+picBoxNormalisedIris.Image = IrisImage.NormalisedIris.ToBitmap();
+
+picGaborFilter1.Image = IrisImage.GaborFilters[0].ToBitmap();
+picGaborFilter2.Image = IrisImage.GaborFilters[1].ToBitmap();
+picGaborFilter3.Image = IrisImage.GaborFilters[2].ToBitmap();
+picGaborFilter4.Image = IrisImage.GaborFilters[3].ToBitmap();
+picGaborFilter5.Image = IrisImage.GaborFilters[4].ToBitmap();
+picGaborFilter6.Image = IrisImage.GaborFilters[5].ToBitmap();</code></pre>
+                        </div>
+                        <div class="code-col">
+                            <h4>新 JavaScript 核心 (iris_engine.js & app.js)</h4>
+                            <pre><code>// 完整非同步影像管線直接於瀏覽器渲染
+const { boundaries, normalized, features } = engine.processImage(canvasEye);
+
+// 渲染展開環形帶與 6 組 Gabor 響應畫布
+renderNormalizedStrip(canvasStrip, normalized);
+for (let f = 0; f &lt; 6; f++) {
+    renderGaborCanvas(gaborCanvases[f], features.filters[f], ...);
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="iris_engine.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
